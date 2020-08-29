@@ -1,21 +1,26 @@
 package server
 
 import (
-	"github.com/GoosvandenBekerom/skateboarding-api/pkg/api/controllers"
+	"fmt"
+	"log"
 	"net/http"
 )
 
-type RequestHandler struct{}
+type RequestHandler struct {
+	pathHandlers map[string]func(request *http.Request, response http.ResponseWriter)
+}
 
 func (handler RequestHandler) ServeHTTP(response http.ResponseWriter, request *http.Request) {
-	var controller controllers.Controller
+	path := request.URL.Path
 
-	switch request.URL.Path {
-	case "/":
-		controller = controllers.RootController{}
-	default:
-		controller = controllers.NotFoundController{}
+	if handleRequest, ok := handler.pathHandlers[path]; ok {
+		handleRequest(request, response)
+	} else {
+		response.WriteHeader(http.StatusNotFound)
+		_, err := fmt.Fprintf(response, "The resource you were looking at %s for could not be found.", path)
+
+		if err != nil {
+			log.Println(err)
+		}
 	}
-
-	controller.Handle(request, response)
 }
